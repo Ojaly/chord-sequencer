@@ -271,21 +271,20 @@ function piano(ctx, dest, freq, t, dur, vol) {
 
 // シンセパッド：デチューンドソーツース×2 ＋ ローパスフィルタースイープ
 function padVoice(ctx, dest, freq, t, dur, vol, detune) {
-  const att = Math.min(0.25, dur * 0.18);
-  const rel = Math.min(0.6,  dur * 0.28);
+  const att = 0.006;                        // パーン！= 超速アタック
+  const rel = Math.min(0.6,  dur * 0.28);  // リリースは今まで通りゆっくり
   const osc1 = ctx.createOscillator();
   const osc2 = ctx.createOscillator();
   const filt = ctx.createBiquadFilter();
   const g    = ctx.createGain();
   osc1.type = 'sawtooth'; osc1.frequency.value = freq; osc1.detune.value = -detune;
   osc2.type = 'sawtooth'; osc2.frequency.value = freq; osc2.detune.value =  detune;
-  // フィルター：アタック時にゆっくり開く（パッド特有の音）
+  // フィルター：最初から全開、サステイン中に少し閉じてウォームに
   filt.type = 'lowpass';
-  filt.frequency.setValueAtTime(200,  t);
-  filt.frequency.linearRampToValueAtTime(2200, t + att * 2.5);
-  filt.frequency.setValueAtTime(1600, Math.max(t + att * 2.5, t + dur - rel));
-  filt.Q.value = 1.2;
-  // エンベロープ：スローアタック、ロングサステイン、スローリリース
+  filt.frequency.setValueAtTime(3200, t);
+  filt.frequency.linearRampToValueAtTime(1400, Math.max(t + 0.08, t + dur - rel));
+  filt.Q.value = 1.0;
+  // エンベロープ：即立ち上がり、ロングサステイン、スローリリース
   g.gain.setValueAtTime(0, t);
   g.gain.linearRampToValueAtTime(vol, t + att);
   g.gain.setValueAtTime(vol, Math.max(t + att + 0.01, t + dur - rel));
@@ -297,15 +296,14 @@ function padVoice(ctx, dest, freq, t, dur, vol, detune) {
 
 function playChordPad(ctx, dest, chord, t, dur) {
   const def = CHORD_DEFS[chord.type];
-  const att = Math.min(0.25, dur * 0.18);
   const rel = Math.min(0.6,  dur * 0.28);
-  // サイン波ベース（低域を支える）
+  // サイン波ベース（低域を支える）— こちらも即アタック
   const bassOsc = ctx.createOscillator();
   const bassG   = ctx.createGain();
   bassOsc.type = 'sine'; bassOsc.frequency.value = midi2f(chord.root + 36);
   bassG.gain.setValueAtTime(0, t);
-  bassG.gain.linearRampToValueAtTime(0.14, t + att);
-  bassG.gain.setValueAtTime(0.14, Math.max(t + att + 0.01, t + dur - rel));
+  bassG.gain.linearRampToValueAtTime(0.14, t + 0.006);
+  bassG.gain.setValueAtTime(0.14, Math.max(t + 0.02, t + dur - rel));
   bassG.gain.linearRampToValueAtTime(0, t + dur + 0.05);
   bassOsc.connect(bassG); bassG.connect(dest);
   bassOsc.start(t); bassOsc.stop(t + dur + 0.12);
