@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chord Melody Sequencer</title>
+<title>Chord Melody Sequencer v2</title>
 <style>
 :root {
   --bg: #12121f; --panel: #1a1a2e; --surface: #16213e;
@@ -42,17 +42,21 @@ button.primary:hover { filter: brightness(1.15); }
 .sec-title { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--dim); margin-bottom: 8px; }
 #chord-list { display: flex; flex-direction: column; gap: 5px; }
 
-/* Chord row */
+/* Chord row — 1行コンパクトレイアウト */
 .chord-row { display: flex; align-items: center; gap: 3px; background: var(--bg);
-  border: 1px solid var(--border); border-radius: 5px; padding: 5px 6px; }
-.chord-idx { color: var(--accent); font-weight: 700; font-size: 10px; min-width: 14px; }
+  border: 1px solid var(--border); border-radius: 5px; padding: 4px 6px;
+  flex-wrap: nowrap; min-width: 0; }
+.chord-idx { color: var(--accent); font-weight: 700; font-size: 10px; min-width: 12px; flex-shrink: 0; }
 .chord-row select { background: var(--surface); border: 1px solid var(--border); color: var(--text);
-  padding: 2px 3px; border-radius: 3px; font-size: 11px; cursor: pointer; }
+  padding: 2px 2px; border-radius: 3px; font-size: 11px; cursor: pointer; flex-shrink: 0; }
 .chord-row select:focus { outline: 1px solid var(--accent2); }
-.beats-sel { width: 38px !important; color: #7ecfff !important; font-weight: 700; text-align: center; }
-.beats-lbl { color: var(--dim); font-size: 9px; margin-left: -2px; }
-.del-btn { background: transparent; border: none; color: var(--dim); padding: 1px 5px;
-  font-size: 14px; cursor: pointer; margin-left: auto; border-radius: 3px; }
+.root-sel  { width: 40px; }
+.type-sel  { width: 50px; }
+.beats-grp { display: flex; align-items: center; gap: 2px; flex-shrink: 0; margin-left: auto; }
+.beats-sel { width: 30px; color: #7ecfff; font-weight: 700; font-size: 12px; }
+.beats-lbl { color: var(--dim); font-size: 10px; white-space: nowrap; }
+.del-btn { background: transparent; border: none; color: var(--dim); padding: 0 4px;
+  font-size: 14px; cursor: pointer; flex-shrink: 0; border-radius: 3px; }
 .del-btn:hover { color: var(--accent); background: transparent; border: none; }
 #btn-add { width: 100%; border-style: dashed; margin-top: 5px; }
 
@@ -265,13 +269,50 @@ function piano(ctx, dest, freq, t, dur, vol) {
   });
 }
 
-function playChordPiano(ctx, dest, chord, t, dur) {
+// シンセパッド：デチューンドソーツース×2 ＋ ローパスフィルタースイープ
+function padVoice(ctx, dest, freq, t, dur, vol, detune) {
+  const att = Math.min(0.25, dur * 0.18);
+  const rel = Math.min(0.6,  dur * 0.28);
+  const osc1 = ctx.createOscillator();
+  const osc2 = ctx.createOscillator();
+  const filt = ctx.createBiquadFilter();
+  const g    = ctx.createGain();
+  osc1.type = 'sawtooth'; osc1.frequency.value = freq; osc1.detune.value = -detune;
+  osc2.type = 'sawtooth'; osc2.frequency.value = freq; osc2.detune.value =  detune;
+  // フィルター：アタック時にゆっくり開く（パッド特有の音）
+  filt.type = 'lowpass';
+  filt.frequency.setValueAtTime(200,  t);
+  filt.frequency.linearRampToValueAtTime(2200, t + att * 2.5);
+  filt.frequency.setValueAtTime(1600, Math.max(t + att * 2.5, t + dur - rel));
+  filt.Q.value = 1.2;
+  // エンベロープ：スローアタック、ロングサステイン、スローリリース
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + att);
+  g.gain.setValueAtTime(vol, Math.max(t + att + 0.01, t + dur - rel));
+  g.gain.linearRampToValueAtTime(0, t + dur + 0.05);
+  osc1.connect(filt); osc2.connect(filt); filt.connect(g); g.connect(dest);
+  osc1.start(t); osc1.stop(t + dur + 0.12);
+  osc2.start(t); osc2.stop(t + dur + 0.12);
+}
+
+function playChordPad(ctx, dest, chord, t, dur) {
   const def = CHORD_DEFS[chord.type];
-  // ベース音（1オクターブ低め）
-  piano(ctx, dest, midi2f(chord.root + 36), t, dur, 0.055);
-  // コードトーン（octave 3〜4付近）
+  const att = Math.min(0.25, dur * 0.18);
+  const rel = Math.min(0.6,  dur * 0.28);
+  // サイン波ベース（低域を支える）
+  const bassOsc = ctx.createOscillator();
+  const bassG   = ctx.createGain();
+  bassOsc.type = 'sine'; bassOsc.frequency.value = midi2f(chord.root + 36);
+  bassG.gain.setValueAtTime(0, t);
+  bassG.gain.linearRampToValueAtTime(0.14, t + att);
+  bassG.gain.setValueAtTime(0.14, Math.max(t + att + 0.01, t + dur - rel));
+  bassG.gain.linearRampToValueAtTime(0, t + dur + 0.05);
+  bassOsc.connect(bassG); bassG.connect(dest);
+  bassOsc.start(t); bassOsc.stop(t + dur + 0.12);
+  // コードトーン（デチューンドパッド ×2レイヤー）
   def.iv.forEach(iv => {
-    piano(ctx, dest, midi2f(chord.root + iv + 48), t, dur, 0.065);
+    padVoice(ctx, dest, midi2f(chord.root + iv + 48), t, dur, 0.068, 8);   // octave 3〜4
+    padVoice(ctx, dest, midi2f(chord.root + iv + 60), t, dur, 0.022, 12);  // octave 4〜5（薄いシマー）
   });
 }
 
@@ -294,7 +335,7 @@ function schedStep(step, t) {
     const ci  = chordIdxAt(step);
     const ch  = S.chords[ci];
     const dur = ch.beats * SPB * sd;
-    playChordPiano(ctx, masterOut, ch, t, dur);
+    playChordPad(ctx, masterOut, ch, t, dur);
   }
   // メロディノート
   S.notes.forEach(n => {
@@ -565,6 +606,7 @@ function buildChordEditor() {
     idx.className = 'chord-idx'; idx.textContent = i + 1;
 
     const rootSel = document.createElement('select');
+    rootSel.className = 'root-sel';
     NOTE_NAMES.forEach((n, ni) => {
       const o = document.createElement('option');
       o.value = ni; o.textContent = n; if (ni === ch.root) o.selected = true;
@@ -572,6 +614,7 @@ function buildChordEditor() {
     });
 
     const typeSel = document.createElement('select');
+    typeSel.className = 'type-sel';
     Object.entries(CHORD_DEFS).forEach(([k, v]) => {
       const o = document.createElement('option');
       o.value = k; o.textContent = v.label; if (k === ch.type) o.selected = true;
@@ -599,7 +642,13 @@ function buildChordEditor() {
       if (S.chords.length > 1) { S.chords.splice(i, 1); buildChordEditor(); refreshAll(); }
     });
 
-    row.append(idx, rootSel, typeSel, beatsSel, beatsLbl, del);
+    // 拍数グループ（ラベル＋セレクタをまとめる）
+    const beatsGrp = document.createElement('div');
+    beatsGrp.className = 'beats-grp';
+    beatsGrp.append(beatsLbl, beatsSel);
+
+    // 1行にすべて並べる：番号・ルート・タイプ・[拍グループ]・削除
+    row.append(idx, rootSel, typeSel, beatsGrp, del);
     list.appendChild(row);
   });
 }
@@ -697,13 +746,11 @@ async function exportWAV() {
     comp.threshold.value = -8; comp.ratio.value = 4;
     comp.connect(off.destination);
 
-    // コード
+    // コード（シンセパッド）
     S.chords.forEach((ch, ci) => {
-      const def = CHORD_DEFS[ch.type];
-      const t   = chordStartStep(ci) * sd;
-      const d   = ch.beats * SPB * sd;
-      piano(off, comp, midi2f(ch.root + 36), t, d, 0.055);
-      def.iv.forEach(iv => piano(off, comp, midi2f(ch.root + iv + 48), t, d, 0.065));
+      const t = chordStartStep(ci) * sd;
+      const d = ch.beats * SPB * sd;
+      playChordPad(off, comp, ch, t, d);
     });
     // メロディ
     S.notes.forEach(n => piano(off, comp, midi2f(n.note), n.step*sd, n.dur*sd, 0.16));
