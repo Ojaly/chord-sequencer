@@ -6,19 +6,13 @@
 <title>Chord Melody Sequencer</title>
 <style>
 :root {
-  --bg: #12121f;
-  --panel: #1a1a2e;
-  --surface: #16213e;
-  --accent: #e94560;
-  --accent2: #533483;
-  --text: #eaeaea;
-  --dim: #6a6a8a;
-  --border: #252540;
+  --bg: #12121f; --panel: #1a1a2e; --surface: #16213e;
+  --accent: #e94560; --accent2: #533483;
+  --text: #eaeaea; --dim: #6a6a8a; --border: #252540;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; background: var(--bg); color: var(--text);
   font-family: 'Segoe UI', system-ui, sans-serif; font-size: 12px; overflow: hidden; }
-
 #app { display: flex; flex-direction: column; height: 100%; }
 
 /* HEADER */
@@ -42,21 +36,26 @@ button.primary:hover { filter: brightness(1.15); }
 #main { display: flex; flex: 1; overflow: hidden; min-height: 0; }
 
 /* LEFT PANEL */
-#left { width: 220px; background: var(--panel); border-right: 1px solid var(--border);
+#left { width: 230px; background: var(--panel); border-right: 1px solid var(--border);
   display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; }
 .sec { padding: 10px; border-bottom: 1px solid var(--border); }
 .sec-title { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--dim); margin-bottom: 8px; }
 #chord-list { display: flex; flex-direction: column; gap: 5px; }
+
+/* Chord row */
 .chord-row { display: flex; align-items: center; gap: 3px; background: var(--bg);
   border: 1px solid var(--border); border-radius: 5px; padding: 5px 6px; }
 .chord-idx { color: var(--accent); font-weight: 700; font-size: 10px; min-width: 14px; }
 .chord-row select { background: var(--surface); border: 1px solid var(--border); color: var(--text);
   padding: 2px 3px; border-radius: 3px; font-size: 11px; cursor: pointer; }
 .chord-row select:focus { outline: 1px solid var(--accent2); }
+.beats-sel { width: 38px !important; color: #7ecfff !important; font-weight: 700; text-align: center; }
+.beats-lbl { color: var(--dim); font-size: 9px; margin-left: -2px; }
 .del-btn { background: transparent; border: none; color: var(--dim); padding: 1px 5px;
   font-size: 14px; cursor: pointer; margin-left: auto; border-radius: 3px; }
 .del-btn:hover { color: var(--accent); background: transparent; border: none; }
 #btn-add { width: 100%; border-style: dashed; margin-top: 5px; }
+
 #btn-gen { width: 100%; background: linear-gradient(135deg, var(--accent2), var(--accent));
   border: none; color: #fff; font-weight: 700; padding: 9px; font-size: 12px; }
 #btn-gen:hover { filter: brightness(1.15); }
@@ -66,23 +65,18 @@ button.primary:hover { filter: brightness(1.15); }
 .exp-btns { display: flex; gap: 5px; }
 .exp-btns button { flex: 1; }
 
-/* ROLL CONTAINER */
+/* ROLL */
 #roll-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
-
-/* Chord band + Timeline share the same spacer width */
 .band-row { display: flex; flex-shrink: 0; border-bottom: 1px solid var(--border); }
 .spacer-cell { width: 52px; flex-shrink: 0; border-right: 1px solid var(--border); }
 .band-clip { flex: 1; overflow: hidden; position: relative; }
 #chord-band-row { height: 26px; }
-#timeline-row { height: 30px; }
-#chord-band-row .band-clip { background: #0f3460; }
-#timeline-row .band-clip { background: var(--panel); }
-
-/* Roll body */
+#timeline-row   { height: 30px; }
+#chord-band-row .band-clip { background: #0d1f3a; }
+#timeline-row   .band-clip { background: var(--panel); }
 #roll-body { display: flex; flex: 1; overflow: hidden; min-height: 0; }
 #keys-clip { width: 52px; flex-shrink: 0; overflow: hidden; border-right: 1px solid var(--border); }
 #roll-scroll { flex: 1; overflow: auto; }
-
 canvas { display: block; }
 
 /* STATUS */
@@ -95,7 +89,6 @@ canvas { display: block; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent2); }
-
 select option { background: #1a1a2e; }
 </style>
 </head>
@@ -112,7 +105,7 @@ select option { background: #1a1a2e; }
   <div class="sep"></div>
   <button id="btn-play" class="primary">▶ 再生</button>
   <button id="btn-stop">■ 停止</button>
-  <button id="btn-loop" class="on" title="ループ">⟳ Loop</button>
+  <button id="btn-loop" class="on">⟳ Loop</button>
   <div class="sep"></div>
   <button id="btn-wav">⬇ WAV</button>
   <button id="btn-midi">⬇ MIDI</button>
@@ -121,7 +114,7 @@ select option { background: #1a1a2e; }
 <div id="main">
   <div id="left">
     <div class="sec">
-      <div class="sec-title">コード進行</div>
+      <div class="sec-title">コード進行 <span style="color:var(--dim);font-size:9px;font-weight:400;text-transform:none">（拍数は各コードで設定）</span></div>
       <div id="chord-list"></div>
       <button id="btn-add">＋ コード追加</button>
     </div>
@@ -167,13 +160,11 @@ select option { background: #1a1a2e; }
   コード: <span id="s-chord">—</span>
 </div>
 
-</div><!-- #app -->
-
+</div>
 <script>
-// ── Constants ────────────────────────────────────────────────────────────────
-const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+// ── Constants ─────────────────────────────────────────────────────────────────
+const NOTE_NAMES   = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const BLACK_KEY_SET = new Set([1,3,6,8,10]);
-
 const CHORD_DEFS = {
   maj:  { iv:[0,4,7],      sc:[0,2,4,5,7,9,11],  label:'Major' },
   min:  { iv:[0,3,7],      sc:[0,2,3,5,7,8,10],  label:'Minor' },
@@ -187,83 +178,127 @@ const CHORD_DEFS = {
   maj6: { iv:[0,4,7,9],    sc:[0,2,4,5,7,9,11],  label:'Maj6' },
   min6: { iv:[0,3,7,9],    sc:[0,2,3,5,7,9,10],  label:'Min6' },
 };
-
-const NH   = 12;   // note height px
-const SW   = 22;   // step width px
-const KW   = 52;   // key width px
-const SPB  = 4;    // steps per beat (16th notes)
-const BPM_ = 4;    // beats per measure
-const SPM  = SPB * BPM_;  // steps per measure = 16
+const NH  = 12;   // note height px
+const SW  = 22;   // step width px
+const KW  = 52;   // key width px
+const SPB = 4;    // steps per beat (16th notes)
 const MIN_MIDI = 36;  // C2
 const MAX_MIDI = 83;  // B5
 const N_NOTES  = MAX_MIDI - MIN_MIDI + 1; // 48
 
-// ── State ────────────────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────────
 const S = {
-  bpm: 120,
-  loop: true,
-  playing: false,
+  bpm: 120, loop: true, playing: false,
+  // beats = 拍数。4拍=1小節(4/4), 3拍=1小節(3/4), など自由に設定
   chords: [
-    {root:0, type:'maj'}, {root:5, type:'maj'},
-    {root:7, type:'maj'}, {root:0, type:'maj'},
+    {root:0, type:'maj', beats:4},
+    {root:5, type:'maj', beats:4},
+    {root:7, type:'maj', beats:4},
+    {root:0, type:'maj', beats:4},
   ],
-  notes: [],    // [{step, note (midi), dur}]
+  notes: [],   // [{step, note(midi), dur}]
   curStep: -1,
 };
 
-// ── Audio ────────────────────────────────────────────────────────────────────
-let AC = null;
-function getAC() { if (!AC) AC = new AudioContext(); return AC; }
-const midi2f = m => 440 * 2 ** ((m - 69) / 12);
-
-function makeNote(ctx, freq, t, dur, type, gain, detune = 0) {
-  const osc = ctx.createOscillator();
-  const g   = ctx.createGain();
-  osc.type = type;
-  osc.frequency.value = freq;
-  if (detune) osc.detune.value = detune;
-  g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(gain, t + 0.015);
-  g.gain.setValueAtTime(gain * 0.75, t + 0.08);
-  g.gain.linearRampToValueAtTime(0, t + dur - 0.03);
-  osc.connect(g); g.connect(ctx.destination);
-  osc.start(t); osc.stop(t + dur);
+// ── Chord position helpers ────────────────────────────────────────────────────
+function totalSteps() {
+  return S.chords.reduce((s, c) => s + c.beats * SPB, 0);
+}
+function chordStartStep(ci) {
+  return S.chords.slice(0, ci).reduce((s, c) => s + c.beats * SPB, 0);
+}
+function chordIdxAt(step) {
+  let acc = 0;
+  for (let i = 0; i < S.chords.length; i++) {
+    acc += S.chords[i].beats * SPB;
+    if (step < acc) return i;
+  }
+  return S.chords.length - 1;
+}
+function chordAt(step) { return S.chords[chordIdxAt(step)]; }
+function isChordStart(step) {
+  let acc = 0;
+  for (const ch of S.chords) {
+    if (acc === step) return true;
+    acc += ch.beats * SPB;
+  }
+  return false;
 }
 
-function playChord(ctx, chord, t, dur) {
-  const def = CHORD_DEFS[chord.type];
-  def.iv.forEach(iv => {
-    const midi = chord.root + iv + 48;
-    const f = midi2f(midi);
-    makeNote(ctx, f, t, dur, 'triangle', 0.10, 0);
-    makeNote(ctx, f, t, dur, 'triangle', 0.04, 6);
+// ── Audio (Piano synthesis) ───────────────────────────────────────────────────
+let AC = null, masterOut = null;
+
+function getAC() {
+  if (!AC) {
+    AC = new AudioContext();
+    const comp = AC.createDynamicsCompressor();
+    comp.threshold.value = -8;
+    comp.knee.value = 6;
+    comp.ratio.value = 4;
+    comp.attack.value = 0.002;
+    comp.release.value = 0.15;
+    comp.connect(AC.destination);
+    masterOut = comp;
+  }
+  return AC;
+}
+
+const midi2f = m => 440 * 2 ** ((m - 69) / 12);
+
+// ピアノ音合成：加算合成（基音＋倍音）＋指数減衰エンベロープ
+function piano(ctx, dest, freq, t, dur, vol) {
+  const decay = Math.min(dur * 0.95, 3.0);
+  const mGain = ctx.createGain();
+  mGain.gain.value = vol;
+  mGain.connect(dest);
+  // [倍音, 音量比]
+  [[1, 1.0],[2, 0.48],[3, 0.25],[4, 0.12],[5, 0.06]].forEach(([h, a]) => {
+    const osc = ctx.createOscillator();
+    const g   = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq * h;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(a, t + 0.003);
+    g.gain.exponentialRampToValueAtTime(Math.max(a * 0.0001, 1e-5), t + decay);
+    osc.connect(g); g.connect(mGain);
+    osc.start(t); osc.stop(t + decay + 0.06);
   });
 }
 
-function playMelNote(ctx, midi, t, dur) {
-  const f = midi2f(midi);
-  makeNote(ctx, f, t, dur, 'sine', 0.20, 0);
+function playChordPiano(ctx, dest, chord, t, dur) {
+  const def = CHORD_DEFS[chord.type];
+  // ベース音（1オクターブ低め）
+  piano(ctx, dest, midi2f(chord.root + 36), t, dur, 0.055);
+  // コードトーン（octave 3〜4付近）
+  def.iv.forEach(iv => {
+    piano(ctx, dest, midi2f(chord.root + iv + 48), t, dur, 0.065);
+  });
 }
 
-// ── Scheduler ────────────────────────────────────────────────────────────────
+function playMelPiano(ctx, dest, midi, t, dur) {
+  piano(ctx, dest, midi2f(midi), t, dur, 0.16);
+}
+
+// ── Scheduler ─────────────────────────────────────────────────────────────────
 const LOOKAHEAD = 0.12;
 const SCHED_MS  = 25;
 let schedTimer, nextStep, nextTime;
 
 function stepDur() { return 60 / S.bpm / SPB; }
-function totalSteps() { return S.chords.length * SPM; }
-function chordAt(step) { return S.chords[Math.floor(step / SPM) % S.chords.length]; }
 
 function schedStep(step, t) {
   const ctx = getAC();
   const sd  = stepDur();
-  const chord = chordAt(step);
-
-  if (step % SPM === 0) {
-    playChord(ctx, chord, t, sd * SPM * 0.92);
+  // コード境界でコード音を鳴らす
+  if (isChordStart(step)) {
+    const ci  = chordIdxAt(step);
+    const ch  = S.chords[ci];
+    const dur = ch.beats * SPB * sd;
+    playChordPiano(ctx, masterOut, ch, t, dur);
   }
+  // メロディノート
   S.notes.forEach(n => {
-    if (n.step === step) playMelNote(ctx, n.note, t, sd * n.dur * 0.92);
+    if (n.step === step) playMelPiano(ctx, masterOut, n.note, t, n.dur * sd);
   });
 }
 
@@ -275,15 +310,13 @@ function scheduler() {
     const step = nextStep % ts;
     schedStep(step, nextTime);
     const fireAt = (nextTime - ctx.currentTime) * 1000;
-    const sStep  = step;
+    const ss = step;
     setTimeout(() => {
       if (!S.playing) return;
-      S.curStep = sStep;
-      drawRoll();
-      updateStatus();
-      // auto-scroll
+      S.curStep = ss;
+      drawRoll(); updateStatus();
       const rs = document.getElementById('roll-scroll');
-      const px = sStep * SW;
+      const px = ss * SW;
       if (px < rs.scrollLeft || px > rs.scrollLeft + rs.clientWidth - 60)
         rs.scrollLeft = Math.max(0, px - 40);
     }, Math.max(0, fireAt));
@@ -301,20 +334,15 @@ function startPlay() {
   if (S.playing) return;
   const ctx = getAC();
   if (ctx.state === 'suspended') ctx.resume();
-  S.playing = true;
-  nextStep   = 0;
-  nextTime   = ctx.currentTime + 0.05;
+  S.playing = true; nextStep = 0; nextTime = ctx.currentTime + 0.05;
   document.getElementById('btn-play').classList.add('on');
   scheduler();
 }
-
 function stopPlay() {
-  S.playing = false;
-  S.curStep  = -1;
+  S.playing = false; S.curStep = -1;
   clearTimeout(schedTimer);
   document.getElementById('btn-play').classList.remove('on');
-  drawRoll();
-  updateStatus();
+  drawRoll(); updateStatus();
 }
 
 // ── Canvas refs ───────────────────────────────────────────────────────────────
@@ -327,8 +355,8 @@ const cxKeys  = cvKeys.getContext('2d');
 const cxTL    = cvTL.getContext('2d');
 const cxChord = cvChord.getContext('2d');
 
-function midiRow(m) { return MAX_MIDI - m; }   // row 0 = highest note
-function rowMidi(r) { return MAX_MIDI - r; }
+const midiRow = m => MAX_MIDI - m;
+const rowMidi = r => MAX_MIDI - r;
 const isBlack = m => BLACK_KEY_SET.has(m % 12);
 
 // ── Draw Keys ─────────────────────────────────────────────────────────────────
@@ -336,220 +364,170 @@ function drawKeys() {
   const w = KW, h = cvKeys.height;
   cxKeys.fillStyle = '#12121f';
   cxKeys.fillRect(0, 0, w, h);
-
   for (let row = 0; row < N_NOTES; row++) {
-    const midi = rowMidi(row);
-    const y    = row * NH;
-    const bl   = isBlack(midi);
-    const nm   = NOTE_NAMES[midi % 12];
-
+    const midi = rowMidi(row), y = row * NH;
+    const bl = isBlack(midi), nm = NOTE_NAMES[midi % 12];
     cxKeys.fillStyle = bl ? '#1e1e34' : (nm === 'C' ? '#2a2a4a' : '#232338');
     cxKeys.fillRect(0, y, w - 1, NH - 1);
-
-    if (bl) {
-      cxKeys.fillStyle = '#0d0d1a';
-      cxKeys.fillRect(w - 14, y, 13, NH - 1);
-    }
+    if (bl) { cxKeys.fillStyle = '#0d0d1a'; cxKeys.fillRect(w - 14, y, 13, NH - 1); }
     if (nm === 'C') {
-      cxKeys.fillStyle = '#e94560';
-      cxKeys.font = '8px monospace';
-      cxKeys.textAlign = 'left';
+      cxKeys.fillStyle = '#e94560'; cxKeys.font = '8px monospace'; cxKeys.textAlign = 'left';
       cxKeys.fillText('C' + (Math.floor(midi / 12) - 1), 2, y + NH - 3);
     } else if ((nm === 'A' || nm === 'F' || nm === 'E') && !bl) {
-      cxKeys.fillStyle = '#555';
-      cxKeys.font = '8px monospace';
-      cxKeys.textAlign = 'left';
+      cxKeys.fillStyle = '#555'; cxKeys.font = '8px monospace'; cxKeys.textAlign = 'left';
       cxKeys.fillText(nm, 2, y + NH - 3);
     }
   }
-  cxKeys.fillStyle = '#252540';
-  cxKeys.fillRect(w - 1, 0, 1, h);
+  cxKeys.fillStyle = '#252540'; cxKeys.fillRect(w - 1, 0, 1, h);
 }
 
 // ── Draw Timeline ─────────────────────────────────────────────────────────────
 function drawTimeline() {
-  const w  = cvTL.width;
-  const h  = cvTL.height;
-  const ts = totalSteps();
-  cxTL.fillStyle = '#1a1a2e';
-  cxTL.fillRect(0, 0, w, h);
+  const w = cvTL.width, h = cvTL.height;
+  cxTL.fillStyle = '#1a1a2e'; cxTL.fillRect(0, 0, w, h);
 
-  for (let s = 0; s <= ts; s++) {
-    const x   = s * SW;
-    const isBt = s % SPB === 0;
-    const isMes = s % SPM === 0;
-    if (isMes) {
-      cxTL.fillStyle = '#e94560';
-      cxTL.font = 'bold 10px monospace';
+  let beatNum = 1;
+  S.chords.forEach((ch, ci) => {
+    const startSt = chordStartStep(ci);
+    for (let b = 0; b < ch.beats; b++) {
+      const x = (startSt + b * SPB) * SW;
+      const isFirst = b === 0;
+      // Beat tick
+      cxTL.fillStyle = isFirst ? '#4a4a7a' : '#252545';
+      cxTL.fillRect(x, isFirst ? 0 : h - 12, 1, isFirst ? h : 12);
+      // Beat number
+      cxTL.fillStyle = isFirst ? '#e94560' : '#666';
+      cxTL.font = isFirst ? 'bold 10px monospace' : '9px monospace';
       cxTL.textAlign = 'left';
-      cxTL.fillText(`${s / SPM + 1}`, x + 2, 12);
-      cxTL.fillStyle = '#5a5a8a';
-      cxTL.fillRect(x, 16, 1, h - 16);
-    } else if (isBt) {
-      cxTL.fillStyle = '#555';
-      cxTL.font = '9px monospace';
-      cxTL.textAlign = 'left';
-      cxTL.fillText(`${(s % SPM) / SPB + 1}`, x + 2, h - 3);
-      cxTL.fillStyle = '#333356';
-      cxTL.fillRect(x, h - 10, 1, 10);
+      cxTL.fillText(String(beatNum), x + 2, h - 4);
+      beatNum++;
     }
-  }
-  cxTL.fillStyle = '#252540';
-  cxTL.fillRect(0, h - 1, w, 1);
+  });
+  // Total end line
+  const ex = totalSteps() * SW;
+  cxTL.fillStyle = '#4a4a7a'; cxTL.fillRect(ex, 0, 1, h);
+  cxTL.fillStyle = '#252540'; cxTL.fillRect(0, h - 1, w, 1);
 }
 
 // ── Draw Chord Band ───────────────────────────────────────────────────────────
 function drawChordBand() {
   const h = cvChord.height;
-  cxChord.fillStyle = '#0f3460';
-  cxChord.fillRect(0, 0, cvChord.width, h);
-
+  cxChord.fillStyle = '#0d1f3a'; cxChord.fillRect(0, 0, cvChord.width, h);
   S.chords.forEach((ch, i) => {
-    const x  = i * SPM * SW;
-    const bw = SPM * SW;
-    const hue = (i * 72) % 360;
-    cxChord.fillStyle = `hsla(${hue},55%,32%,.9)`;
+    const x  = chordStartStep(i) * SW;
+    const bw = ch.beats * SPB * SW;
+    const hue = (i * 67) % 360;
+    cxChord.fillStyle = `hsla(${hue},55%,30%,.95)`;
     cxChord.fillRect(x + 1, 1, bw - 2, h - 2);
-    cxChord.fillStyle = '#fff';
-    cxChord.font = 'bold 11px monospace';
-    cxChord.textAlign = 'center';
+    cxChord.fillStyle = '#fff'; cxChord.font = 'bold 11px monospace'; cxChord.textAlign = 'center';
     const lbl = NOTE_NAMES[ch.root] + (ch.type === 'maj' ? '' : ch.type);
-    cxChord.fillText(lbl, x + bw / 2, h / 2 + 4);
-    cxChord.fillStyle = '#252540';
-    cxChord.fillRect(x + bw - 1, 0, 1, h);
+    // Show beats count if narrow
+    const label = bw > 60 ? `${lbl}  (${ch.beats}拍)` : lbl;
+    cxChord.fillText(label, x + bw / 2, h / 2 + 4);
+    cxChord.fillStyle = '#252540'; cxChord.fillRect(x + bw - 1, 0, 1, h);
   });
 }
 
 // ── Draw Roll ─────────────────────────────────────────────────────────────────
 function drawRoll() {
-  const w  = cvRoll.width;
-  const h  = cvRoll.height;
+  const w = cvRoll.width, h = cvRoll.height;
   const ts = totalSteps();
   const cx = cxRoll;
 
   // Background rows
   for (let row = 0; row < N_NOTES; row++) {
-    const midi = rowMidi(row);
-    const y    = row * NH;
-    const bl   = isBlack(midi);
-    const nm   = NOTE_NAMES[midi % 12];
-    cx.fillStyle = bl ? '#111122' : (nm === 'C' ? '#1c1c34' : '#171728');
+    const midi = rowMidi(row), y = row * NH, nm = NOTE_NAMES[midi % 12];
+    cx.fillStyle = isBlack(midi) ? '#111122' : (nm === 'C' ? '#1c1c34' : '#171728');
     cx.fillRect(0, y, w, NH);
   }
 
-  // Playhead measure highlight
+  // Active chord highlight
   if (S.curStep >= 0) {
-    const mi = Math.floor(S.curStep / SPM);
+    const ci = chordIdxAt(S.curStep);
     cx.fillStyle = 'rgba(233,69,96,.05)';
-    cx.fillRect(mi * SPM * SW, 0, SPM * SW, h);
+    cx.fillRect(chordStartStep(ci) * SW, 0, S.chords[ci].beats * SPB * SW, h);
   }
 
-  // Chord / scale tint
+  // Chord/scale tint per chord region
   S.chords.forEach((ch, ci) => {
-    const def  = CHORD_DEFS[ch.type];
-    const sx   = ci * SPM * SW;
-    const sw2  = SPM * SW;
+    const def = CHORD_DEFS[ch.type];
+    const sx  = chordStartStep(ci) * SW;
+    const sw2 = ch.beats * SPB * SW;
     for (let row = 0; row < N_NOTES; row++) {
-      const midi = rowMidi(row);
-      const rel  = ((midi - ch.root) % 12 + 12) % 12;
-      const isIv = def.iv.includes(rel);
-      const isSc = def.sc.includes(rel);
-      if (isIv) {
-        cx.fillStyle = 'rgba(233,69,96,.10)';
-        cx.fillRect(sx, row * NH, sw2, NH);
-      } else if (isSc) {
-        cx.fillStyle = 'rgba(0,200,255,.04)';
-        cx.fillRect(sx, row * NH, sw2, NH);
-      }
+      const rel = ((rowMidi(row) - ch.root) % 12 + 12) % 12;
+      if (def.iv.includes(rel))      { cx.fillStyle = 'rgba(233,69,96,.10)'; cx.fillRect(sx, row*NH, sw2, NH); }
+      else if (def.sc.includes(rel)) { cx.fillStyle = 'rgba(0,200,255,.04)';  cx.fillRect(sx, row*NH, sw2, NH); }
     }
   });
 
   // Grid lines
   for (let s = 0; s <= ts; s++) {
-    const x    = s * SW;
-    const isBt  = s % SPB === 0;
-    const isMes = s % SPM === 0;
-    cx.fillStyle = isMes ? '#4a4a7a' : isBt ? '#252545' : '#1a1a32';
+    const x = s * SW;
+    cx.fillStyle = isChordStart(s) ? '#5a5a8a' : (s % SPB === 0 ? '#252545' : '#1a1a32');
     cx.fillRect(x, 0, 1, h);
   }
   for (let row = 0; row <= N_NOTES; row++) {
-    cx.fillStyle = '#1a1a32';
-    cx.fillRect(0, row * NH - 1, w, 1);
+    cx.fillStyle = '#1a1a32'; cx.fillRect(0, row * NH - 1, w, 1);
   }
 
   // Melody notes
   S.notes.forEach(n => {
     const row = midiRow(n.note);
     if (row < 0 || row >= N_NOTES) return;
-    const x   = n.step * SW + 1;
-    const y   = row * NH + 1;
-    const nw  = n.dur * SW - 2;
-    const nh  = NH - 2;
+    const x = n.step * SW + 1, y = row * NH + 1;
+    const nw = n.dur * SW - 2, nh = NH - 2;
     const act = S.curStep >= n.step && S.curStep < n.step + n.dur;
     cx.fillStyle = act ? '#00ffff' : '#00c8f0';
     cx.beginPath();
-    if (cx.roundRect) cx.roundRect(x, y, nw, nh, 2);
-    else cx.rect(x, y, nw, nh);
+    if (cx.roundRect) cx.roundRect(x, y, nw, nh, 2); else cx.rect(x, y, nw, nh);
     cx.fill();
     if (nw > 18) {
-      cx.fillStyle = '#003';
-      cx.font = 'bold 8px monospace';
-      cx.textAlign = 'left';
+      cx.fillStyle = '#003'; cx.font = 'bold 8px monospace'; cx.textAlign = 'left';
       cx.fillText(NOTE_NAMES[n.note % 12], x + 2, y + nh - 2);
     }
   });
 
   // Playhead
   if (S.curStep >= 0) {
-    cx.fillStyle = 'rgba(233,69,96,.85)';
-    cx.fillRect(S.curStep * SW, 0, 2, h);
+    cx.fillStyle = 'rgba(233,69,96,.85)'; cx.fillRect(S.curStep * SW, 0, 2, h);
   }
 }
 
 // ── Resize ────────────────────────────────────────────────────────────────────
 function resize() {
-  const rs   = document.getElementById('roll-scroll');
-  const rb   = document.getElementById('roll-body');
-  const rw   = rs.clientWidth;
-  const rh   = rs.clientHeight;
-  const cw   = Math.max(totalSteps() * SW, rw);
-  const ch_  = Math.max(N_NOTES * NH, rh);
-
-  cvRoll.width  = cw; cvRoll.height  = ch_;
-  cvKeys.width  = KW; cvKeys.height  = ch_;
-  cvTL.width    = cw; cvTL.height    = 30;
+  const rs = document.getElementById('roll-scroll');
+  const rw = rs.clientWidth, rh = rs.clientHeight;
+  const cw = Math.max(totalSteps() * SW, rw);
+  const ch = Math.max(N_NOTES * NH, rh);
+  cvRoll.width = cw; cvRoll.height = ch;
+  cvKeys.width = KW; cvKeys.height = ch;
+  cvTL.width   = cw; cvTL.height   = 30;
   cvChord.width = cw; cvChord.height = 26;
-
-  // Clip container heights to match visible area for keys
   document.getElementById('keys-clip').style.height = rh + 'px';
-
   drawKeys(); drawTimeline(); drawChordBand(); drawRoll();
 }
 
 // ── Scroll sync ───────────────────────────────────────────────────────────────
 document.getElementById('roll-scroll').addEventListener('scroll', e => {
-  const sl = e.target.scrollLeft;
-  const st = e.target.scrollTop;
-  document.getElementById('cv-tl').style.transform    = `translateX(-${sl}px)`;
-  document.getElementById('cv-chord').style.transform = `translateX(-${sl}px)`;
-  document.getElementById('cv-keys').style.transform  = `translateY(-${st}px)`;
+  const sl = e.target.scrollLeft, st = e.target.scrollTop;
+  cvTL.style.transform    = `translateX(-${sl}px)`;
+  cvChord.style.transform = `translateX(-${sl}px)`;
+  cvKeys.style.transform  = `translateY(-${st}px)`;
 });
 
 // ── Mouse interaction ─────────────────────────────────────────────────────────
 let drawing = false, drawNote = null, drawStart = 0, erasing = false;
 
 function posFromEvent(e) {
-  const rs   = document.getElementById('roll-scroll');
+  const rs = document.getElementById('roll-scroll');
   const rect = cvRoll.getBoundingClientRect();
-  const x    = e.clientX - rect.left + rs.scrollLeft;
-  const y    = e.clientY - rect.top  + rs.scrollTop;
+  const x = e.clientX - rect.left + rs.scrollLeft;
+  const y = e.clientY - rect.top  + rs.scrollTop;
   return {
     step: Math.max(0, Math.min(Math.floor(x / SW), totalSteps() - 1)),
-    row:  Math.max(0, Math.min(Math.floor(y / NH), N_NOTES - 1)),
     midi: rowMidi(Math.max(0, Math.min(Math.floor(y / NH), N_NOTES - 1))),
   };
 }
-
 function noteAt(step, midi) {
   return S.notes.findIndex(n => n.note === midi && step >= n.step && step < n.step + n.dur);
 }
@@ -563,25 +541,14 @@ cvRoll.addEventListener('mousedown', e => {
     erasing = true; drawing = true; return;
   }
   const idx = noteAt(step, midi);
-  if (idx >= 0) {
-    S.notes.splice(idx, 1); erasing = true;
-  } else {
-    drawNote = { step, note: midi, dur: 1 };
-    S.notes.push(drawNote);
-    drawStart = step;
-    erasing = false;
-  }
-  drawing = true;
-  drawRoll(); updateStatus();
+  if (idx >= 0) { S.notes.splice(idx, 1); erasing = true; }
+  else { drawNote = {step, note:midi, dur:1}; S.notes.push(drawNote); drawStart = step; erasing = false; }
+  drawing = true; drawRoll(); updateStatus();
 });
-
 cvRoll.addEventListener('mousemove', e => {
   if (!drawing || erasing || !drawNote) return;
-  const { step } = posFromEvent(e);
-  drawNote.dur = Math.max(1, step - drawStart + 1);
-  drawRoll();
+  drawNote.dur = Math.max(1, posFromEvent(e).step - drawStart + 1); drawRoll();
 });
-
 cvRoll.addEventListener('mouseup', () => { drawing = false; drawNote = null; updateStatus(); });
 cvRoll.addEventListener('mouseleave', () => { drawing = false; drawNote = null; });
 cvRoll.addEventListener('contextmenu', e => e.preventDefault());
@@ -600,21 +567,31 @@ function buildChordEditor() {
     const rootSel = document.createElement('select');
     NOTE_NAMES.forEach((n, ni) => {
       const o = document.createElement('option');
-      o.value = ni; o.textContent = n;
-      if (ni === ch.root) o.selected = true;
+      o.value = ni; o.textContent = n; if (ni === ch.root) o.selected = true;
       rootSel.appendChild(o);
     });
 
     const typeSel = document.createElement('select');
     Object.entries(CHORD_DEFS).forEach(([k, v]) => {
       const o = document.createElement('option');
-      o.value = k; o.textContent = v.label;
-      if (k === ch.type) o.selected = true;
+      o.value = k; o.textContent = v.label; if (k === ch.type) o.selected = true;
       typeSel.appendChild(o);
     });
 
+    // 拍数セレクタ（1〜8拍、変拍子対応）
+    const beatsSel = document.createElement('select');
+    beatsSel.className = 'beats-sel';
+    [1,2,3,4,5,6,7,8].forEach(b => {
+      const o = document.createElement('option');
+      o.value = b; o.textContent = b; if (b === ch.beats) o.selected = true;
+      beatsSel.appendChild(o);
+    });
+    const beatsLbl = document.createElement('span');
+    beatsLbl.className = 'beats-lbl'; beatsLbl.textContent = '拍';
+
     rootSel.addEventListener('change', () => { ch.root = +rootSel.value; refreshAll(); });
     typeSel.addEventListener('change', () => { ch.type = typeSel.value;  refreshAll(); });
+    beatsSel.addEventListener('change', () => { ch.beats = +beatsSel.value; refreshAll(); });
 
     const del = document.createElement('button');
     del.className = 'del-btn'; del.textContent = '×';
@@ -622,83 +599,88 @@ function buildChordEditor() {
       if (S.chords.length > 1) { S.chords.splice(i, 1); buildChordEditor(); refreshAll(); }
     });
 
-    row.append(idx, rootSel, typeSel, del);
+    row.append(idx, rootSel, typeSel, beatsSel, beatsLbl, del);
     list.appendChild(row);
   });
 }
 
 document.getElementById('btn-add').addEventListener('click', () => {
   if (S.chords.length < 16) {
-    S.chords.push({root: 0, type: 'maj'});
+    S.chords.push({root:0, type:'maj', beats:4});
     buildChordEditor(); refreshAll();
   }
 });
 
+// ── Key detection ─────────────────────────────────────────────────────────────
+function detectKey() {
+  const first = S.chords[0];
+  const root  = first.root;
+  const isMinor = ['min','min7','min6','dim'].includes(first.type);
+  const intervals = isMinor ? [0,2,3,5,7,8,10] : [0,2,4,5,7,9,11];
+  const notes = [];
+  for (let m = 60; m <= 83; m++)
+    if (intervals.includes(((m - root) % 12 + 12) % 12)) notes.push(m);
+  return { root, isMinor, intervals, notes };
+}
+
 // ── Auto Melody ───────────────────────────────────────────────────────────────
+// 拍数に応じてリズムパターンを動的生成
+function makeRhythm(totalStepsInChord) {
+  const rhythm = [];
+  let rem = totalStepsInChord;
+  while (rem > 0) {
+    const opts = [2, 4, 6, 8].filter(d => d <= rem);
+    if (!opts.length) { rhythm.push(rem); break; }
+    rhythm.push(opts[Math.floor(Math.random() * opts.length)]);
+    rem -= rhythm[rhythm.length - 1];
+  }
+  return rhythm;
+}
+
 function generateMelody() {
   S.notes = [];
-  const rhythms = [
-    [4,4,4,4], [2,2,4,4,4], [4,4,2,2,4], [2,2,2,2,4,4],
-    [4,2,2,4,4], [4,6,6], [2,4,2,4,4], [4,4,4,2,2],
-  ];
+  const key      = detectKey();
+  const keyNotes = key.notes;
 
   S.chords.forEach((ch, ci) => {
-    const def  = CHORD_DEFS[ch.type];
-    const base = ci * SPM;
+    const def        = CHORD_DEFS[ch.type];
+    const base       = chordStartStep(ci);
+    const chordSteps = ch.beats * SPB;
 
-    // Build scale notes in melody range (MIDI 60-83)
-    const scNotes = [], ivNotes = [];
-    for (let oct = 4; oct <= 5; oct++) {
-      def.sc.forEach(iv => {
-        const m = ch.root + iv + oct * 12;
-        if (m >= 60 && m <= 83) scNotes.push(m);
-      });
-      def.iv.forEach(iv => {
-        const m = ch.root + iv + oct * 12;
-        if (m >= 60 && m <= 83) ivNotes.push(m);
-      });
-    }
-    scNotes.sort((a,b) => a-b);
-    ivNotes.sort((a,b) => a-b);
-    if (!scNotes.length) return;
+    const ivNotes = keyNotes.filter(m => def.iv.includes(((m - ch.root) % 12 + 12) % 12));
+    const landing = ivNotes.length ? ivNotes : keyNotes;
+    if (!keyNotes.length) return;
 
-    const rhy = rhythms[Math.floor(Math.random() * rhythms.length)];
-    let cur  = base;
-    let prev = ivNotes[Math.floor(ivNotes.length / 2)] || scNotes[0];
+    const rhy  = makeRhythm(chordSteps);
+    let cur    = base;
+    let prev   = landing[Math.floor(landing.length / 2)];
 
     rhy.forEach((dur, ni) => {
-      if (cur >= base + SPM) return;
-      const rem = base + SPM - cur;
-      const d   = Math.min(dur, rem);
+      if (cur >= base + chordSteps) return;
+      const d = Math.min(dur, base + chordSteps - cur);
       if (d <= 0) return;
-
       const r = Math.random();
+      const isLast = ni === rhy.length - 1 || cur + dur >= base + chordSteps;
       let next;
-      const isLast = ni === rhy.length - 1 || cur + dur >= base + SPM;
-
-      if (isLast && ivNotes.length) {
-        // Resolve to chord tone
-        next = ivNotes[Math.floor(Math.random() * ivNotes.length)];
+      if (isLast) {
+        next = landing[Math.floor(Math.random() * landing.length)];
       } else if (r < 0.12) {
         next = prev;
       } else if (r < 0.55) {
-        const idx = scNotes.indexOf(prev);
+        const idx = keyNotes.indexOf(prev);
         const dir = Math.random() < 0.55 ? 1 : -1;
-        next = scNotes[Math.max(0, Math.min(scNotes.length-1, idx < 0 ? 0 : idx + dir))];
+        next = keyNotes[Math.max(0, Math.min(keyNotes.length-1, idx < 0 ? 0 : idx + dir))];
       } else if (r < 0.75) {
-        next = ivNotes[Math.floor(Math.random() * ivNotes.length)] || prev;
+        next = landing[Math.floor(Math.random() * landing.length)];
       } else {
-        const idx = scNotes.indexOf(prev);
+        const idx = keyNotes.indexOf(prev);
         const jmp = (Math.floor(Math.random()*3)+2) * (Math.random()<.5?1:-1);
-        next = scNotes[Math.max(0, Math.min(scNotes.length-1, idx < 0 ? 0 : idx + jmp))];
+        next = keyNotes[Math.max(0, Math.min(keyNotes.length-1, idx < 0 ? 0 : idx + jmp))];
       }
-
-      S.notes.push({step: cur, note: next, dur: d});
-      prev = next;
-      cur += d;
+      S.notes.push({step:cur, note:next, dur:d});
+      prev = next; cur += d;
     });
   });
-
   drawRoll(); updateStatus();
 }
 
@@ -707,216 +689,151 @@ async function exportWAV() {
   const btn = document.getElementById('btn-wav');
   btn.textContent = '⏳ 処理中...'; btn.disabled = true;
   try {
-    const sr   = 44100;
-    const sd   = stepDur();
-    const ts   = totalSteps();
-    const dur  = ts * sd + 1.5;
-    const off  = new OfflineAudioContext(2, Math.ceil(sr * dur), sr);
+    const sr  = 44100, sd = stepDur(), ts = totalSteps();
+    const dur = ts * sd + 3.5;
+    const off = new OfflineAudioContext(2, Math.ceil(sr * dur), sr);
+    // コンプレッサー
+    const comp = off.createDynamicsCompressor();
+    comp.threshold.value = -8; comp.ratio.value = 4;
+    comp.connect(off.destination);
 
+    // コード
     S.chords.forEach((ch, ci) => {
       const def = CHORD_DEFS[ch.type];
-      const t   = ci * SPM * sd;
-      const d   = SPM * sd * 0.92;
-      def.iv.forEach(iv => {
-        const f = midi2f(ch.root + iv + 48);
-        [0, 6].forEach(det => {
-          const g = det === 0 ? 0.09 : 0.035;
-          const osc = off.createOscillator();
-          const gn  = off.createGain();
-          osc.type = 'triangle'; osc.frequency.value = f; osc.detune.value = det;
-          gn.gain.setValueAtTime(0, t);
-          gn.gain.linearRampToValueAtTime(g, t + 0.015);
-          gn.gain.setValueAtTime(g * .75, t + .08);
-          gn.gain.linearRampToValueAtTime(0, t + d);
-          osc.connect(gn); gn.connect(off.destination);
-          osc.start(t); osc.stop(t + d + 0.05);
-        });
-      });
+      const t   = chordStartStep(ci) * sd;
+      const d   = ch.beats * SPB * sd;
+      piano(off, comp, midi2f(ch.root + 36), t, d, 0.055);
+      def.iv.forEach(iv => piano(off, comp, midi2f(ch.root + iv + 48), t, d, 0.065));
     });
-
-    S.notes.forEach(n => {
-      const t  = n.step * sd;
-      const d  = n.dur * sd * 0.92;
-      const f  = midi2f(n.note);
-      const osc = off.createOscillator();
-      const gn  = off.createGain();
-      osc.type = 'sine'; osc.frequency.value = f;
-      gn.gain.setValueAtTime(0, t);
-      gn.gain.linearRampToValueAtTime(.18, t + .012);
-      gn.gain.setValueAtTime(.14, t + .06);
-      gn.gain.linearRampToValueAtTime(0, t + d);
-      osc.connect(gn); gn.connect(off.destination);
-      osc.start(t); osc.stop(t + d + .05);
-    });
+    // メロディ
+    S.notes.forEach(n => piano(off, comp, midi2f(n.note), n.step*sd, n.dur*sd, 0.16));
 
     const buf = await off.startRendering();
-    downloadBlob(buf2wav(buf), 'melody.wav', 'audio/wav');
+    downloadBlob(buf2wav(buf), 'chord_seq.wav', 'audio/wav');
   } finally { btn.textContent = '⬇ WAV'; btn.disabled = false; }
 }
 
 function buf2wav(buf) {
-  const nc  = buf.numberOfChannels;
-  const sr  = buf.sampleRate;
-  const len = buf.length;
-  const ab  = new ArrayBuffer(44 + len * nc * 2);
-  const v   = new DataView(ab);
-  const ws  = s => { for (let i=0;i<s.length;i++) v.setUint8(ws.o++, s.charCodeAt(i)); };
-  ws.o = 0;
+  const nc = buf.numberOfChannels, sr = buf.sampleRate, len = buf.length;
+  const ab = new ArrayBuffer(44 + len * nc * 2);
+  const v  = new DataView(ab);
   const W32 = (x,o) => v.setUint32(o,x,true);
   const W16 = (x,o) => v.setUint16(o,x,true);
   'RIFF'.split('').forEach((c,i) => v.setUint8(i, c.charCodeAt(0)));
-  W32(ab.byteLength - 8, 4);
+  W32(ab.byteLength-8,4);
   'WAVE'.split('').forEach((c,i) => v.setUint8(8+i, c.charCodeAt(0)));
   'fmt '.split('').forEach((c,i) => v.setUint8(12+i, c.charCodeAt(0)));
   W32(16,16); W16(1,20); W16(nc,22); W32(sr,24);
   W32(sr*nc*2,28); W16(nc*2,32); W16(16,34);
   'data'.split('').forEach((c,i) => v.setUint8(36+i, c.charCodeAt(0)));
-  W32(len*nc*2, 40);
+  W32(len*nc*2,40);
   let off = 44;
-  for (let i=0;i<len;i++) {
-    for (let c=0;c<nc;c++) {
-      const s = Math.max(-1, Math.min(1, buf.getChannelData(c)[i]));
-      v.setInt16(off, s < 0 ? s*0x8000 : s*0x7FFF, true);
-      off += 2;
-    }
+  for (let i=0;i<len;i++) for (let c=0;c<nc;c++) {
+    const s = Math.max(-1, Math.min(1, buf.getChannelData(c)[i]));
+    v.setInt16(off, s<0 ? s*0x8000 : s*0x7FFF, true); off+=2;
   }
   return ab;
 }
 
 // ── MIDI Export ───────────────────────────────────────────────────────────────
 function exportMIDI() {
-  const TPB   = 480;    // ticks per beat
-  const TPST  = TPB / SPB;  // ticks per 16th step
+  const TPB  = 480, TPST = TPB / SPB;
   const tempo = Math.round(60000000 / S.bpm);
-
   const hdr = midiHdr(2, TPB);
   const t1  = midiChordTrack(TPST, tempo);
   const t2  = midiMelTrack(TPST);
-
   const out = new Uint8Array(hdr.length + t1.length + t2.length);
-  out.set(hdr, 0); out.set(t1, hdr.length); out.set(t2, hdr.length + t1.length);
-  downloadBlob(out.buffer, 'melody.mid', 'audio/midi');
+  out.set(hdr,0); out.set(t1,hdr.length); out.set(t2,hdr.length+t1.length);
+  downloadBlob(out.buffer, 'chord_seq.mid', 'audio/midi');
 }
-
 function vl(v) {
-  const b = [v & 0x7f]; v >>= 7;
-  while (v) { b.unshift((v & 0x7f)|0x80); v >>= 7; }
-  return b;
+  const b=[v&0x7f]; v>>=7;
+  while(v){b.unshift((v&0x7f)|0x80);v>>=7;} return b;
 }
-
 function midiHdr(ntrk, tpb) {
-  const b = new ArrayBuffer(14); const v = new DataView(b);
+  const b=new ArrayBuffer(14), v=new DataView(b);
   [0x4D,0x54,0x68,0x64].forEach((x,i)=>v.setUint8(i,x));
   v.setUint32(4,6); v.setUint16(8,1); v.setUint16(10,ntrk); v.setUint16(12,tpb);
   return new Uint8Array(b);
 }
-
 function buildTrack(evts) {
-  const d = new Uint8Array(evts);
-  const b = new ArrayBuffer(8 + d.length); const v = new DataView(b);
+  const d=new Uint8Array(evts), b=new ArrayBuffer(8+d.length), v=new DataView(b);
   [0x4D,0x54,0x72,0x6B].forEach((x,i)=>v.setUint8(i,x));
-  v.setUint32(4, d.length);
-  const r = new Uint8Array(b); r.set(d, 8); return r;
+  v.setUint32(4,d.length);
+  const r=new Uint8Array(b); r.set(d,8); return r;
 }
-
 function midiChordTrack(tpst, tempo) {
-  const evts = [];
-  // Tempo
-  evts.push(...vl(0), 0xFF,0x51,0x03, (tempo>>16)&0xFF,(tempo>>8)&0xFF,tempo&0xFF);
-
-  const timed = [];
-  S.chords.forEach((ch, ci) => {
-    const def = CHORD_DEFS[ch.type];
-    const st  = ci * SPM * tpst;
-    const en  = st + SPM * tpst - 1;
-    def.iv.forEach(iv => {
-      const m = ch.root + iv + 48;
-      timed.push({t:st, d:[0x90,m,80]});
-      timed.push({t:en, d:[0x80,m,0]});
+  const evts=[];
+  evts.push(...vl(0),0xFF,0x51,0x03,(tempo>>16)&0xFF,(tempo>>8)&0xFF,tempo&0xFF);
+  const timed=[];
+  S.chords.forEach((ch,ci) => {
+    const def=CHORD_DEFS[ch.type];
+    const st=chordStartStep(ci)*tpst, en=st+ch.beats*SPB*tpst-1;
+    // Bass
+    const bm=ch.root+36; timed.push({t:st,d:[0x90,bm,60]}); timed.push({t:en,d:[0x80,bm,0]});
+    def.iv.forEach(iv=>{
+      const m=ch.root+iv+48; timed.push({t:st,d:[0x90,m,75]}); timed.push({t:en,d:[0x80,m,0]});
     });
   });
-  timed.sort((a,b) => a.t-b.t);
-  timed.push({t: S.chords.length*SPM*tpst, d:[0xFF,0x2F,0x00]});
-
-  let cur = 0;
-  timed.forEach(e => {
-    evts.push(...vl(e.t - cur), ...e.d);
-    cur = e.t;
-  });
+  timed.sort((a,b)=>a.t-b.t);
+  timed.push({t:totalSteps()*tpst, d:[0xFF,0x2F,0x00]});
+  let cur=0; timed.forEach(e=>{evts.push(...vl(e.t-cur),...e.d);cur=e.t;});
   return buildTrack(evts);
 }
-
 function midiMelTrack(tpst) {
-  const evts = [];
-  const sorted = [...S.notes].sort((a,b)=>a.step-b.step);
-  const timed  = [];
-  sorted.forEach(n => {
-    const st = n.step * tpst;
-    const en = st + n.dur * tpst - 1;
-    timed.push({t:st, d:[0x91,n.note,100]});
-    timed.push({t:en, d:[0x81,n.note,0]});
+  const evts=[], timed=[];
+  [...S.notes].sort((a,b)=>a.step-b.step).forEach(n=>{
+    const st=n.step*tpst, en=st+n.dur*tpst-1;
+    timed.push({t:st,d:[0x91,n.note,100]}); timed.push({t:en,d:[0x81,n.note,0]});
   });
   timed.sort((a,b)=>a.t-b.t);
-  const last = sorted.length ? (sorted[sorted.length-1].step + sorted[sorted.length-1].dur)*tpst : 0;
-  timed.push({t: Math.max(last, S.chords.length*SPM*tpst), d:[0xFF,0x2F,0x00]});
-  let cur = 0;
-  timed.forEach(e => { evts.push(...vl(e.t-cur),...e.d); cur = e.t; });
+  timed.push({t:totalSteps()*tpst, d:[0xFF,0x2F,0x00]});
+  let cur=0; timed.forEach(e=>{evts.push(...vl(e.t-cur),...e.d);cur=e.t;});
   return buildTrack(evts);
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 function downloadBlob(buf, name, mime) {
-  const a = Object.assign(document.createElement('a'), {
-    href: URL.createObjectURL(new Blob([buf],{type:mime})),
-    download: name,
-  });
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  const a = Object.assign(document.createElement('a'),
+    {href: URL.createObjectURL(new Blob([buf],{type:mime})), download: name});
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 function updateStatus() {
   const s = S.curStep;
-  document.getElementById('s-pos').textContent =
-    s >= 0 ? `小節${Math.floor(s/SPM)+1} ビート${Math.floor((s%SPM)/SPB)+1}` : '停止中';
-  document.getElementById('s-notes').textContent = S.notes.length;
   if (s >= 0) {
-    const ch = chordAt(s);
-    document.getElementById('s-chord').textContent =
-      NOTE_NAMES[ch.root] + CHORD_DEFS[ch.type].label;
+    const ci = chordIdxAt(s);
+    const beatInChord = Math.floor((s - chordStartStep(ci)) / SPB) + 1;
+    document.getElementById('s-pos').textContent = `コード${ci+1}  拍${beatInChord}`;
+    const ch = S.chords[ci];
+    document.getElementById('s-chord').textContent = NOTE_NAMES[ch.root] + CHORD_DEFS[ch.type].label;
   } else {
+    document.getElementById('s-pos').textContent = '停止中';
     document.getElementById('s-chord').textContent = '—';
   }
+  document.getElementById('s-notes').textContent = S.notes.length;
 }
 
 function refreshAll() {
   if (S.playing) stopPlay();
-  // Clamp notes that are out of range
   const ts = totalSteps();
   S.notes = S.notes.filter(n => n.step < ts);
-  resize();
-  updateStatus();
+  resize(); updateStatus();
 }
 
-// ── Event Wiring ──────────────────────────────────────────────────────────────
+// ── Events ────────────────────────────────────────────────────────────────────
 document.getElementById('btn-play').addEventListener('click', startPlay);
 document.getElementById('btn-stop').addEventListener('click', stopPlay);
 document.getElementById('btn-loop').addEventListener('click', () => {
-  S.loop = !S.loop;
-  document.getElementById('btn-loop').classList.toggle('on', S.loop);
+  S.loop = !S.loop; document.getElementById('btn-loop').classList.toggle('on', S.loop);
 });
 document.getElementById('inp-bpm').addEventListener('change', e => {
   S.bpm = Math.max(40, Math.min(240, +e.target.value));
 });
 document.getElementById('btn-gen').addEventListener('click', generateMelody);
-document.getElementById('btn-clear').addEventListener('click', () => {
-  S.notes = []; drawRoll(); updateStatus();
-});
+document.getElementById('btn-clear').addEventListener('click', () => { S.notes=[]; drawRoll(); updateStatus(); });
 document.getElementById('btn-quant').addEventListener('click', () => {
-  S.notes = S.notes.map(n => ({
-    ...n,
-    step: Math.round(n.step / 2) * 2,
-    dur:  Math.max(1, Math.round(n.dur / 2) * 2),
-  }));
+  S.notes = S.notes.map(n => ({...n, step:Math.round(n.step/2)*2, dur:Math.max(1,Math.round(n.dur/2)*2)}));
   drawRoll();
 });
 ['btn-wav','btn-wav2'].forEach(id => document.getElementById(id).addEventListener('click', exportWAV));
@@ -925,17 +842,14 @@ document.getElementById('btn-quant').addEventListener('click', () => {
 // ── Init ──────────────────────────────────────────────────────────────────────
 function init() {
   buildChordEditor();
-  const ro = new ResizeObserver(resize);
-  ro.observe(document.getElementById('roll-scroll'));
+  new ResizeObserver(resize).observe(document.getElementById('roll-scroll'));
   resize();
   setTimeout(() => {
     const rs = document.getElementById('roll-scroll');
-    rs.scrollTop = Math.max(0, (N_NOTES * NH / 2) - rs.clientHeight / 2 + 60);
+    rs.scrollTop = Math.max(0, N_NOTES * NH / 2 - rs.clientHeight / 2 + 60);
   }, 80);
-  generateMelody();
-  updateStatus();
+  generateMelody(); updateStatus();
 }
-
 init();
 </script>
 </body>
